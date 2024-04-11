@@ -20,6 +20,17 @@ pub struct Keystore {
 }
 
 impl Keystore{
+
+    pub fn load(path: &Path) -> anyhow::Result<Keystore> {
+        let reader = File::open(path)?;
+        Keystore::set_permissions(&reader)?;
+        let keystore: Keystore = serde_json::from_reader(reader)?;
+        let store_path = get_file_path(&keystore.name);
+        keystore.save(&store_path);
+        Ok(keystore)
+    }
+
+
     pub fn save(&self, path: &Path) -> anyhow::Result<()> {
         let path_parent = path.parent().unwrap();
         fs::create_dir_all(&path_parent)?;
@@ -43,13 +54,35 @@ impl Keystore{
 }
 
 
+pub fn get_keypairs_list() {
+    // 指定目录的路径
+    let directory_path = get_keypairs_path;
+
+    // 获取目录中的所有条目
+    let entries = fs::read_dir(directory_path())
+        .expect("Failed to read directory");
+
+    // 遍历并打印所有文件名
+    for entry in entries {
+        if let Ok(entry) = entry {
+            let file_name = entry.file_name();
+            println!("{}", file_name.to_string_lossy());
+        }
+    }
+}
 
 
-
-pub fn get_file_path(file_name: String) -> PathBuf {
+pub fn get_file_path(file_name: &String) -> PathBuf {
     let dir = ProjectDirs::from_path(PathBuf::from(get_prog_without_ext())).unwrap();
     // fs::create_dir_all(dir.data_dir());
-    let dp = dir.data_dir().join("keypairs").join(file_name);
+    let dp = dir.data_dir().join("keypairs").join(file_name.to_owned()+".json");
+    dp
+}
+
+pub fn get_keypairs_path() -> PathBuf {
+    let dir = ProjectDirs::from_path(PathBuf::from(get_prog_without_ext())).unwrap();
+    // fs::create_dir_all(dir.data_dir());
+    let dp = dir.data_dir().join("keypairs");
     dp
 }
 

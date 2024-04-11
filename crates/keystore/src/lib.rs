@@ -6,7 +6,7 @@ use std::path::Path;
 use std::path::PathBuf;
 use ed25519_dalek::Keypair;
 use rand_core::{RngCore, OsRng};
-use crate::keystore::{get_file_path, Keystore};
+use crate::keystore::{get_file_path,get_keypairs_list, Keystore};
 
 
 #[derive(Debug, Parser)]
@@ -36,21 +36,9 @@ pub enum KeystoreBundleSubcommand {
     ///
     /// creates a file `./some/directory/foo/[name].dna`, based on
     /// `./some/directory/foo/dna.yaml`.
-    Pack {
+    Import {
         /// The path to the working directory containing a `dna.yaml` manifest.
         path: std::path::PathBuf,
-
-        /// Specify the output path for the packed bundle file.
-        ///
-        /// If not specified, the `[name].dna` bundle will be placed inside the
-        /// provided working directory.
-        #[arg(short = 'o', long)]
-        output: Option<PathBuf>,
-
-        /// Output shared object "dylib" files
-        /// that can be used to run this happ on iOS
-        #[arg(long)]
-        dylib_ios: bool,
     },
 
     /// Unpack parts of the `.dna` bundle file into a specific directory.
@@ -85,7 +73,7 @@ pub enum KeystoreBundleSubcommand {
     },
 
     /// Print the schema for a DNA manifest
-    Schema,
+    List,
 }
 
 
@@ -108,17 +96,14 @@ impl KeystoreBundleSubcommand {
                     name: name.clone(),
                     keypair,
                 };
-                let keypair_json_file = name.add(".json");
-                let ap = get_file_path(keypair_json_file);
+                let ap = get_file_path(&name);
                 save_keystore.save(&ap);
                 println!("credentials_default_path = {:?}", ap);
             }
-            Self::Pack {
+            Self::Import {
                 path,
-                output,
-                dylib_ios,
             } => {
-                println!("Wrote bundle {:?}", path);
+                Keystore::load(&path);
             }
             Self::Unpack {
                 path,
@@ -128,8 +113,8 @@ impl KeystoreBundleSubcommand {
             } => {
                 println!("Unpacked to directory {:?}", path);
             }
-            Self::Schema => {
-                println!("Schema");
+            Self::List => {
+                get_keypairs_list();
             }
         }
         Ok(())
